@@ -1,0 +1,2 @@
+## Student Record API
+A RESTful API that manages student records for a university system using FastAPI and SQLite. The API will allow users to create, read, update, and delete student information, as well as filter by major or GPA threshold.
