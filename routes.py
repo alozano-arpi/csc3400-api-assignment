@@ -19,15 +19,39 @@ def get_all_students():
 
     return {"students": students, "count": len(students)}
 
-@router.get("???")  # TODO: Replace ??? with correct endpoint path
+@router.get("/students/by-major")
 def get_students_by_major(major: str):
-    # TODO: Implement this
-    pass
+    conn = get_connection()
+    cursor = conn.cursor()
 
-@router.get("???")  # TODO: Replace ??? with correct endpoint path
+    cursor.execute('SELECT * FROM students WHERE major = ?', (major,))
+    row = cursor.fetchall()
+    conn.close()
+
+    students = []
+    for row in row:
+        students.append(dict_from_row(row))
+    
+    return {"students": students, "count": len(students)}
+
+
+@router.get("/students/by-gpa")
 def get_students_by_gpa(min_gpa: float):
-    # TODO: Implement this
-    pass
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT * FROM students WHERE gpa >= ?', (min_gpa,))
+    row = cursor.fetchall()
+    conn.close()
+
+    if min_gpa < 0.0 or min_gpa > 4.0:
+         raise HTTPException(status_code=400, detail="GPA must be between 0.0 and 4.0")
+
+    students = []
+    for row in row:
+        students.append(dict_from_row(row))
+    
+    return {"students": students, "count": len(students)}
 
 @router.get("/students/{student_id}")
 def get_student(student_id: int):
@@ -54,6 +78,15 @@ def create_student(student: Student):
     conn.commit()
     conn.close()
 
+    if not student.name or not student.name.strip():
+        raise HTTPException(status_code=400, detail="Name cannot be empty")
+
+    if not student.major or not student.major.strip():
+        raise HTTPException(status_code=400, detail="Major cannot be empty")
+    
+    if student.gpa < 0.0 or student.gpa > 4.0:
+        raise HTTPException(status_code=400, detail="GPA must be between 0.0 and 4.0")        
+
     return {
         "id": student_id,
         "name": student.name,
@@ -64,10 +97,38 @@ def create_student(student: Student):
     }
 
 
-@router.put("???")  # TODO: Replace ??? with correct endpoint path
+@router.put("/students/{student_id}")
 def update_student(student_id: int, student: Student):
-    # TODO: Implement this
-    pass
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('SELECT * FROM students WHERE id = ?', (student_id,))
+        row = cursor.fetchone()
+    
+        if row is None:
+            raise HTTPException(status_code=404, detail="Student with ID " + str(student_id) + " not found")
+
+        cursor.execute('UPDATE students SET name = ?, email= ?, major= ?, gpa= ?, enrollment_year=? WHERE id=?', (student.name, student.email, student.major, student.gpa, student.enrollment_year, student_id))
+        conn.commit()
+        conn.close()
+
+        if not student.name or not student.name.strip():
+            raise HTTPException(status_code=400, detail="Name cannot be empty")
+
+        if not student.major or not student.major.strip():
+            raise HTTPException(status_code=400, detail="Major cannot be empty")
+    
+        if student.gpa < 0.0 or student.gpa > 4.0:
+          raise HTTPException(status_code=400, detail="GPA must be between 0.0 and 4.0")        
+
+        return {
+            "id": student_id,
+            "name": student.name,
+            "email": student.email,
+            "major": student.major,
+            "gpa": student.gpa,
+            "enrollment_year": student.enrollment_year
+        }
 
 @router.delete("/students/{student_id}")
 def delete_student(student_id: int):
